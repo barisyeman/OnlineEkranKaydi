@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ekran Kaydedici</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            /* NextJS Renkleri (Verilen CSS'ten) */
+            --geist-success: #0070f3;
+            --geist-cyan-light: #79ffe1;
+            --next-selection: var(--geist-success);
+            --next-selection-text-color: #fff;
+            --geist-space-gap: 24px;
+            --geist-page-width: 1000px;
+            --geist-page-margin: var(--geist-space-gap);
+            --geist-page-width-with-margin: calc(var(--geist-page-width) + (var(--geist-page-margin) * 2));
+            --geist-selection: var(--next-selection);
+            --geist-selection-text-color: var(--next-selection-text-color);
+            --geist-radius: 5px;
+            --accents-1: #fafafa;
+            --accents-2: #eaeaea;
+            --accents-3: #999999;
+            --accents-4: #888888;
+            --accents-5: #666666;
+            --accents-6: #444444;
+            --accents-7: #333333;
+            --accents-8: #111111;
+            --background: #ffffff;
+            --foreground: #000000;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            --font-mono: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
+        }
+        
+        /* Koyu tema */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #000000;
+                --foreground: #ffffff;
+                --accents-1: #111111;
+                --accents-2: #333333;
+                --accents-3: #444444;
+                --accents-4: #666666;
+                --accents-5: #888888;
+                --accents-6: #999999;
+                --accents-7: #eaeaea;
+                --accents-8: #fafafa;
+            }
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            font-family: var(--font-sans);
+            background-color: var(--background);
+            color: var(--foreground);
+            font-size: 16px;
+            line-height: 1.65;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overscroll-behavior-y: contain;
+        }
+        
+        .container {
+            max-width: var(--geist-page-width);
+            margin: 0 auto;
+            padding: var(--geist-space-gap);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: calc(var(--geist-space-gap) * 2);
+        }
+        
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            margin-bottom: 16px;
+        }
+        
+        .subtitle {
+            color: var(--accents-5);
+            font-size: 1.125em;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* Gradient başlık metni */
+        .gradient-text {
+            --text-gradient: linear-gradient(180deg, #555555, #000000);
+            background: var(--text-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .dark-theme .gradient-text {
+            --text-gradient: linear-gradient(180deg, #ffffff, #adadad);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .gradient-text {
+                --text-gradient: linear-gradient(180deg, #ffffff, #adadad);
+            }
+        }
+        
+        /* Ana içerik */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: calc(var(--geist-space-gap) * 1.25);
+        }
+        
+        /* Kartlar */
+        .card {
+            background: var(--background);
+            border: 1px solid var(--accents-2);
+            border-radius: var(--geist-radius);
+            padding: var(--geist-space-gap);
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border-color: var(--accents-3);
+        }
+        
+        /* Video container */
+        .video-container {
+            position: relative;
+            background-color: var(--accents-1);
+            border-radius: var(--geist-radius);
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+        
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--accents-5);
+            gap: 15px;
+        }
+        
+        .placeholder i {
+            font-size: 2.5rem;
+        }
+        
+        /* Kayıt göstergesi */
+        .recording-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: var(--error, #ee0000);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .recording-indicator.active {
+            opacity: 1;
+        }
+        
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background-color: white;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.8; }
+        }
+        
+        /* Timer */
+        .timer {
+            font-family: var(--font-mono);
+            font-size: 2.5rem;
+            font-weight: 500;
+            text-align: center;
+            margin: calc(var(--geist-space-gap) * 1.25) 0;
+            letter-spacing: -0.03em;
+            color: var(--foreground);
+        }
+        
+        /* Butonlar */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: calc(var(--geist-space-gap) * 0.625);
+            margin: calc(var(--geist-space-gap) * 1.25) 0;
+        }
+        
+        .btn {
+            background-color: var(--background);
+            color: var(--foreground);
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid var(--accents-2);
+            border-radius: var(--geist-radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 160px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: pan-y;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+        
+        .btn:hover {
+            border-color: var(--accents-3);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .btn-primary {
+            background-color: var(--geist-success);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0060df;
+        }
+        
+        .btn-danger {
+            background-color: var(--error, #ee0000);
+            color: white;
+            border: none;
+        }
+        
+        .btn-danger:hover {
+            background-color: #cc0000;
+        }
+        
+        .btn-download {
+            background-color: var(--geist-success);
+            color: white;
+            border: none;
+        }
+        
+        .btn-download:hover {
+            background-color: #0061d4;
+        }
+        
+        /* Ayarlar */
+        .settings {
+            margin: calc(var(--geist-space-gap) * 0.834) 0;
+        }
+        
+        .option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+            margin-right: 10px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--accents-3);
+            transition: .4s;
+            border-radius: 22px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--geist-success);
+        }
+        
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--geist-success);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(18px);
+        }
+        
+        .option-label {
+            font-size: 14px;
+            color: var(--accents-6);
+        }
+        
+        /* Status mesajı */
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 15px 0;
+            color: var(--accents-5);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Toast mesajı */
+        .toast {
+            position: fixed;
+            bottom: calc(var(--geist-space-gap) * 1.25);
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--background);
+            color: var(--foreground);
+            border: 1px solid var(--accents-2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 15px 20px;
+            border-radius: var(--geist-radius);
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 350px;
+        }
+        
+        .toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .toast i {
+            font-size: 16px;
+        }
+        
+        .toast.success i {
+            color: var(--geist-success);
+        }
+        
+        .toast.error i {
+            color: var(--error, #ee0000);
+        }
+        
+        .toast.warning i {
+            color: var(--warning, #f5a623);
+        }
+        
+        /* Download section */
+        .download-section {
+            display: none;
+            text-align: center;
+            margin-top: calc(var(--geist-space-gap) * 1.25);
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: calc(var(--geist-space-gap) * 2.5);
+            padding-top: calc(var(--geist-space-gap) * 0.834);
+            border-top: 1px solid var(--accents-2);
+            color: var(--accents-4);
+            font-size: 14px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: var(--geist-space-gap) calc(var(--geist-space-gap) * 0.625);
+            }
+            
+            h1 {
+                font-size: 2.25rem;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+        
+        #stopBtn {
+            display: none;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+        }
+        
+        .loading:after {
+            content: '';
+            display: block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--geist-success);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* NextJS'den ek sınıflar */
+        .no-tap-highlight, a, .btn {
+            touch-action: pan-y;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .no-tap-callout, .no-tap-highlight, a, .btn {
+            -webkit-touch-callout: none;
+        }
+        
+        .f-reset {
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="gradient-text">Ekran Kaydedici</h1>
+            <p class="subtitle">Profesyonel kalitede ekran kayıtları oluşturun</p>
+        </header>
+        
+        <main class="main">
+            <div class="card">
+                <div class="settings">
+                    <div class="option">
+                        <label class="switch">
+                            <input type="checkbox" id="systemAudioToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span class="option-label">Sistem Sesini Kaydet</span>
+                    </div>
+                    
+                    <div class="option">
+                        <label class="switch">
+                            <input type="checkbox" id="microphoneToggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span class="option-label">Mikrofon Sesini Kaydet</span>
+                    </div>
+                </div>
+                
+                <div class="status" id="statusMessage">Kayıt için hazır</div>
+                
+                <div class="timer" id="timer">00:00</div>
+                
+                <div class="video-container">
+                    <video id="preview" autoplay muted></video>
+                    <div class="placeholder" id="placeholder">
+                        <i class="fas fa-desktop"></i>
+                        <p>Kayıt başladığında burada görüntülenecek</p>
+                    </div>
+                    <div class="recording-indicator" id="recordingIndicator">
+                        <div class="pulse"></div>
+                        KAYIT
+                    </div>
+                    <div class="loading" id="loading"></div>
+                </div>
+                
+                <div class="btn-group">
+                    <button id="startBtn" class="btn btn-primary">
+                        <i class="fas fa-video"></i>
+                        Kaydı Başlat
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger">
+                        <i class="fas fa-stop"></i>
+                        Kaydı Durdur
+                    </button>
+                </div>
+                
+                <div class="download-section" id="downloadSection">
+                    <button id="downloadBtn" class="btn btn-download">
+                        <i class="fas fa-download"></i>
+                        MP4 Olarak İndir
+                    </button>
+                </div>
+            </div>
+        </main>
+        
+        <div class="toast" id="toast">
+            <i class="fas fa-info-circle"></i>
+            <span id="toastMessage"></span>
+        </div>
+        
+        <footer class="footer">
+            <p>Modern tarayıcı tabanlı ekran kaydedici</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM elementleri
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            const videoElement = document.getElementById('preview');
+            const placeholder = document.getElementById('placeholder');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadSection = document.getElementById('downloadSection');
+            const recordingIndicator = document.getElementById('recordingIndicator');
+            const timerElement = document.getElementById('timer');
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const loading = document.getElementById('loading');
+            const systemAudioToggle = document.getElementById('systemAudioToggle');
+            const microphoneToggle = document.getElementById('microphoneToggle');
+            
+            // Değişkenler
+            let mediaRecorder;
+            let recordedBlobs = [];
+            let stream;
+            let timerInterval;
+            let startTime;
+            
+            // Toast mesajı
+            function showToast(message, type = 'info') {
+                toastMessage.textContent = message;
+                toast.className = 'toast visible';
+                
+                if (type === 'success') {
+                    toast.classList.add('success');
+                    toast.querySelector('i').className = 'fas fa-check-circle';
+                } else if (type === 'error') {
+                    toast.classList.add('error');
+                    toast.querySelector('i').className = 'fas fa-exclamation-circle';
+                } else if (type === 'warning') {
+                    toast.classList.add('warning');
+                    toast.querySelector('i').className = 'fas fa-exclamation-triangle';
+                } else {
+                    toast.querySelector('i').className = 'fas fa-info-circle';
+                }
+                
+                setTimeout(() => {
+                    toast.className = 'toast';
+                    setTimeout(() => {
+                        toast.classList.remove('success', 'error', 'warning');
+                    }, 300);
+                }, 4000);
+            }
+            
+            // UI güncellemeleri
+            function updateUI(state) {
+                if (state === 'recording') {
+                    startBtn.style.display = 'none';
+                    stopBtn.style.display = 'inline-flex';
+                    placeholder.style.display = 'none';
+                    recordingIndicator.classList.add('active');
+                    videoElement.style.display = 'block';
+                    systemAudioToggle.disabled = true;
+                    microphoneToggle.disabled = true;
+                } else if (state === 'stopped') {
+                    startBtn.style.display = 'inline-flex';
+                    stopBtn.style.display = 'none';
+                    recordingIndicator.classList.remove('active');
+                    downloadSection.style.display = 'block';
+                    systemAudioToggle.disabled = false;
+                    microphoneToggle.disabled = false;
+                } else if (state === 'loading') {
+                    loading.style.display = 'block';
+                } else if (state === 'ready') {
+                    loading.style.display = 'none';
+                    placeholder.style.display = 'flex';
+                    videoElement.style.display = 'none';
+                    downloadSection.style.display = 'none';
+                    systemAudioToggle.disabled = false;
+                    microphoneToggle.disabled = false;
+                }
+            }
+            
+            // Süre sayacı
+            function startTimer() {
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 1000);
+                updateTimer();
+            }
+            
+            function updateTimer() {
+                const elapsed = Date.now() - startTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            function stopTimer() {
+                clearInterval(timerInterval);
+            }
+            
+            function resetTimer() {
+                timerElement.textContent = '00:00';
+            }
+            
+            // Kayıt işlemleri
+            async function startRecording() {
+                recordedBlobs = [];
+                updateUI('loading');
+                
+                try {
+                    statusMessage.textContent = 'Ekran seçimi bekleniyor...';
+                    
+                    // Ekran paylaşımı ayarları
+                    const displayMediaOptions = {
+                        video: {
+                            displaySurface: "monitor", 
+                            logicalSurface: true,
+                            cursor: "always"
+                        },
+                        audio: systemAudioToggle.checked // Sistem sesini kaydet seçeneği kontrol edilir
+                    };
+                    
+                    // Ekran paylaşımını başlat
+                    stream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
+                    
+                    // Mikrofonu ekle (eğer seçiliyse)
+                    if (microphoneToggle.checked) {
+                        try {
+                            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            const audioTrack = audioStream.getAudioTracks()[0];
+                            stream.addTrack(audioTrack);
+                            showToast("Mikrofon kaydı aktif", "success");
+                        } catch (audioError) {
+                            showToast("Mikrofon erişilemedi", "warning");
+                        }
+                    }
+                    
+                    // Video önizleme
+                    videoElement.srcObject = stream;
+                    updateUI('recording');
+                    
+                    // MediaRecorder ayarları
+                    const options = { mimeType: 'video/mp4' };
+                    
+                    try {
+                        mediaRecorder = new MediaRecorder(stream, options);
+                    } catch (e) {
+                        console.error('MP4 formatı desteklenmiyor, WebM kullanılacak:', e);
+                        mediaRecorder = new MediaRecorder(stream);
+                    }
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) {
+                            recordedBlobs.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstart = () => {
+                        statusMessage.textContent = 'Kaydediliyor...';
+                        startTimer();
+                        showToast("Kayıt başladı", "success");
+                    };
+                    
+                    mediaRecorder.onstop = () => {
+                        statusMessage.textContent = 'Kayıt tamamlandı';
+                        stopTimer();
+                        updateUI('stopped');
+                        showToast("Kayıt başarıyla tamamlandı", "success");
+                        
+                        // Streamleri kapat
+                        stream.getTracks().forEach(track => track.stop());
+                        
+                        // Kaydedilen videoyu göster
+                        const blob = new Blob(recordedBlobs, { type: 'video/mp4' });
+                        const url = URL.createObjectURL(blob);
+                        videoElement.srcObject = null;
+                        videoElement.src = url;
+                        videoElement.controls = true;
+                    };
+                    
+                    // Kullanıcı ekran paylaşımını kapatırsa
+                    stream.getVideoTracks()[0].onended = () => {
+                        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                            stopRecording();
+                        }
+                    };
+                    
+                    // Kaydı başlat
+                    mediaRecorder.start(100);
+                    
+                } catch (error) {
+                    console.error('Kayıt başlatılamadı:', error);
+                    updateUI('ready');
+                    
+                    if (error.name === 'NotAllowedError') {
+                        statusMessage.textContent = 'Ekran paylaşımı izni verilmedi';
+                        showToast("Ekran paylaşımı izni verilmedi", "error");
+                    } else {
+                        statusMessage.textContent = `Hata: ${error.message}`;
+                        showToast(`Kayıt başlatılamadı: ${error.message}`, "error");
+                    }
+                }
+            }
+            
+            function stopRecording() {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    statusMessage.textContent = 'Kayıt durduruluyor...';
+                    mediaRecorder.stop();
+                }
+            }
+            
+            // İndirme işlemi
+            function downloadRecording() {
+                if (recordedBlobs.length === 0) {
+                    showToast("İndirilecek bir kayıt bulunamadı", "error");
+                    return;
+                }
+                
+                const blob = new Blob(recordedBlobs, { type: 'video/mp4' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `ekran-kaydi-${new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '')}.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showToast("Video başarıyla indirildi", "success");
+                }, 100);
+            }
+            
+            // Event listeners
+            startBtn.addEventListener('click', startRecording);
+            stopBtn.addEventListener('click', stopRecording);
+            downloadBtn.addEventListener('click', downloadRecording);
+            
+            // Tarayıcı desteğini kontrol et
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                statusMessage.textContent = 'Tarayıcınız ekran kaydını desteklemiyor';
+                startBtn.disabled = true;
+                showToast("Tarayıcınız ekran kaydını desteklemiyor. Lütfen Chrome, Firefox veya Edge kullanın.", "error");
+            }
+            
+            // Sayfa kapatılırken kullanıcıyı uyar
+            window.addEventListener('beforeunload', (e) => {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    e.preventDefault();
+                    e.returnValue = 'Kayıt hala devam ediyor. Çıkmak istediğinize emin misiniz?';
+                    return e.returnValue;
+                }
+            });
+            
+            // Uygulama başlangıcı
+            updateUI('ready');
+        });
+    </script>
+</body>
+</html>
